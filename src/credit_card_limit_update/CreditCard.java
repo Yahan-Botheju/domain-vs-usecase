@@ -31,4 +31,23 @@ public class CreditCard {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
+    public void upgradeCreditCardLimit(BigDecimal newRequestLimit, LocalDateTime currentTime) {
+        //check account is active
+        if(this.isBlocked){
+            throw new IllegalStateException("Blocked by card cannot upgrade credit limit");
+        }
+        //check request limit is higher
+        if(newRequestLimit.compareTo(this.currentLimit) < 0){
+            throw new IllegalArgumentException("New limit must be grater than current limit");
+        }
+        //chek outstanding
+        BigDecimal maxAllowedBalance = newRequestLimit.multiply(new BigDecimal("0.80"));
+        if(this.accountBalance.compareTo(maxAllowedBalance) <= 0){
+            throw new IllegalStateException("Cannot upgrade limit due to high outstanding balance");
+        }
+
+        this.currentLimit = newRequestLimit;
+        this.updatedAt = currentTime;
+
+    }
 }
