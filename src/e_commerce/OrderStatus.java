@@ -1,4 +1,8 @@
 package e_commerce;
 
-public enum OderStatus {
+public enum OrderStatus {
+    PENDING,
+    SHIPPED,
+    DELIVERED,
+    CANCELLED
 }
