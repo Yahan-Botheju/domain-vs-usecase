@@ -1,30 +1,49 @@
-package bank_account;
+package bank_account_found_transfer_between_accounts;
+
+import bank_account.*;
+
+import java.math.BigDecimal;
 
 @Service
 public class DeductMaintenanceFeeUseCaseImpl implements DeductMaintenanceFeeUseCase {
 
     //inject required dependencies
     private final AccountRepository accountRepository;
+    private final AuditLogService auditLogService;
 
-    public DeductMaintenanceFeeUseCaseImpl(AccountRepository accountRepository) {
+    public DeductMaintenanceFeeUseCaseImpl(AccountRepository accountRepository, AuditLogService auditLogService) {
         this.accountRepository = accountRepository;
+        this.auditLogService = auditLogService;
     }
 
     @Override
-    public MaintenanceFeeResults monthlyMaintenance(Long accountNumber) {
-        //CHECK ACCOUNT AVAILABILITY
-        BankAccount checkAccount = accountRepository.findById(accountNumber)
-                .orElseThrow(() -> new ResourceNotFoundException("Ïnvalid Account Number"));
+    public TransferMoneyResult transferMoney(Long fromAccountId, Long toAccountId, BigDecimal amount){
 
-        BankAccount updatedFee = BankAccount.MaintenanceFee();
+        if(fromAccountId.equals(toAccountId)){
+            throw new IllegalArgumentException("From account id cannot be the same as to account id");
+        }
 
-        accountRepository.save(updatedFee);
+        BankAccount checkFromAccount = accountRepository.findById(fromAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid account number"));
 
-        return MaintenanceFeeResults(
-                "Fee diduction success",
-                updatedFee.getAccountNumber(),
-                updatedFee.getAccountBalance(),
-                updatedFee.getStatus()
+        BankAccount checkToAccount = accountRepository.findById(toAccountId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid account number"));
+
+        BankAccount fromAccount = BankAccount.transferMoney(amount);
+        BankAccount toAccount = BankAccount.depositMoney(amount);
+
+        BankAccount savedFromAccount = accountRepository.save(fromAccount);
+        BankAccount savedToAccount = accountRepository.save(toAccount);
+
+        auditLogService.log(savedFromAccount, savedToAccount);
+
+        return new TransferMoneyResult(
+                "Money Transfer successful",
+                savedFromAccount.getAccountNumber(),
+                savedFromAccount.getAccountBalance(),
+                savedToAccount.getAccountNumber(),
+                savedToAccount.getAccountBalance()
         );
     }
+
 }
